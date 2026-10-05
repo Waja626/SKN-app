@@ -3,7 +3,7 @@ import base64
 import json
 import os
 import pandas as pd
-import psycopg
+import psycopg2
 import streamlit as st
 import streamlit.components.v1 as components
 from xhtml2pdf import pisa
@@ -22,7 +22,7 @@ def run_query(query, params=(), fetch=True):
     # PostgreSQL uses %s instead of SQLite's ? for placeholders
     pg_query = query.replace("?", "%s")
 
-    conn = psycopg.connect(st.secrets["postgres"]["connection_string"])
+    conn = psycopg2.connect(st.secrets["postgres"]["connection_string"])
     cursor = conn.cursor()
     cursor.execute(pg_query, params)
 
