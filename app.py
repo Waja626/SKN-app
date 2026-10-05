@@ -113,7 +113,6 @@ def generate_invoice_html(
     return f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; background: white; color: black;">
         <div>
-            {logo_html}
             <img src="logo.jpeg" style="width: 150px; height: auto;">
             <p style="font-size: 11px; margin: 0; color: #555;">SKN PERMATA RESOURCES. (202603006346 / JM1037858-H)<br>
             No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6<br>
@@ -183,7 +182,6 @@ def generate_quotation_html(
     return f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; background: white; color: black;">
         <div>
-            {logo_html}
             <p style="font-size: 11px; margin: 0; color: #555;">SKN PERMATA RESOURCES. (202603006346 / JM1037858-H)<br>
             No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6<br>
             Bandar Sri Semantan, 28000 Temerloh Pahang<br>
