@@ -1,0 +1,4 @@
+streamlit
+pandas
+xhtml2pdf
+psycopg2-binary
