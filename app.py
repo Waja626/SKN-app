@@ -112,13 +112,20 @@ def generate_invoice_html(
 
     return f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; background: white; color: black;">
-        <div>
-            <img src="logo.jpeg" style="width: 150px; height: auto;">
-            <p style="font-size: 11px; margin: 0; color: #555;">SKN PERMATA RESOURCES. (202603006346 / JM1037858-H)<br>
-            No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6<br>
-            Bandar Sri Semantan, 28000 Temerloh Pahang<br>
-            Email: sknpermataresources@gmail.com | Tel: 0139600936/0182500936/01161046685</p>
-        </div>
+        <!-- Side-by-Side Header Layout to Save Space -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
+            <tr>
+                <td style="border: none; width: 65px; vertical-align: middle; padding: 0 10px 0 0;">
+                    {logo_html}
+                </td>
+                <td style="border: none; vertical-align: middle; padding: 0;">
+                    <p style="font-size: 11px; margin: 0; color: #555;"><strong>SKN PERMATA RESOURCES. (202603006346 / JM1037858-H)</strong><br>
+                    No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6<br>
+                    Bandar Sri Semantan, 28000 Temerloh Pahang<br>
+                    Email: sknpermataresources@gmail.com | Tel: 0139600936/0182500936/01161046685</p>
+                </td>
+            </tr>
+        </table>
         <hr style="margin: 10px 0;">
         <table style="width: 100%; font-size: 14px;">
             <tr>
@@ -181,12 +188,20 @@ def generate_quotation_html(
 
     return f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; background: white; color: black;">
-        <div>
-            <p style="font-size: 11px; margin: 0; color: #555;">SKN PERMATA RESOURCES. (202603006346 / JM1037858-H)<br>
-            No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6<br>
-            Bandar Sri Semantan, 28000 Temerloh Pahang<br>
-            Email: sknpermataresources@gmail.com | Tel: 0139600936/0182500936/01161046685</p>
-        </div>
+        <!-- Side-by-Side Header Layout to Save Space -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
+            <tr>
+                <td style="border: none; width: 65px; vertical-align: middle; padding: 0 10px 0 0;">
+                    {logo_html}
+                </td>
+                <td style="border: none; vertical-align: middle; padding: 0;">
+                    <p style="font-size: 11px; margin: 0; color: #555;"><strong>SKN PERMATA RESOURCES. (202603006346 / JM1037858-H)</strong><br>
+                    No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6<br>
+                    Bandar Sri Semantan, 28000 Temerloh Pahang<br>
+                    Email: sknpermataresources@gmail.com | Tel: 0139600936/0182500936/01161046685</p>
+                </td>
+            </tr>
+        </table>
         <hr style="margin: 10px 0;">
         <table style="width: 100%; font-size: 14px;">
             <tr>
@@ -788,7 +803,7 @@ elif menu == "📑 Create Quotation":
                         )
             except Exception as e:
                 st.error(f"Error saving quotation: {e}")
-                
+
 # ==========================================
 # 4. VIEW INVOICES & QUOTATIONS
 # ==========================================
