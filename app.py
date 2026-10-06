@@ -98,6 +98,11 @@ logo_html = (
 def generate_invoice_html(
     inv_no, client_name, client_address, date, terms, items, total_amount, status
 ):
+    # Pull sensitive info safely from Streamlit secrets
+    phone_number = st.secrets["company"]["phone"]
+    bank_name = st.secrets["company"]["bank_name"]
+    bank_account = st.secrets["company"]["bank_account"]
+
     items_html = ""
     for idx, item in enumerate(items, 1):
         items_html += f"""
@@ -112,7 +117,6 @@ def generate_invoice_html(
 
     return f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; background: white; color: black;">
-        <!-- Side-by-Side Header Layout to Save Space -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
             <tr>
                 <td style="border: none; width: 65px; vertical-align: middle; padding: 0 10px 0 0;">
@@ -122,7 +126,7 @@ def generate_invoice_html(
                     <p style="font-size: 11px; margin: 0; color: #555;"><strong>SKN PERMATA RESOURCES. (202603006346 / JM1037858-H)</strong><br>
                     No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6<br>
                     Bandar Sri Semantan, 28000 Temerloh Pahang<br>
-                    Email: sknpermataresources@gmail.com | Tel: 0139600936/0182500936/01161046685</p>
+                    Email: sknpermataresources@gmail.com | Tel: {phone_number}</p>
                 </td>
             </tr>
         </table>
@@ -157,9 +161,9 @@ def generate_invoice_html(
         <table style="width: 100%; font-size: 14px;">
             <tr>
                 <td style="vertical-align: top; font-size: 12px;">
-                    <strong>Bank Muamalat</strong><br>
+                    <strong>{bank_name}</strong><br>
                     SKN PERMATA RESOURCES<br>
-                    <strong>BANK ACC: 06040002074710 - BANK MUAMALAT</strong>
+                    <strong>BANK ACC: {bank_account} - {bank_name}</strong>
                 </td>
                 <td style="text-align: right;">
                     <strong>Sub Total:</strong> RM {total_amount:,.2f}<br>
@@ -174,6 +178,9 @@ def generate_invoice_html(
 def generate_quotation_html(
     quote_no, client_name, client_address, date, terms, items, total_amount
 ):
+    # Pull phone number safely from Streamlit secrets
+    phone_number = st.secrets["company"]["phone"]
+
     items_html = ""
     for idx, item in enumerate(items, 1):
         items_html += f"""
@@ -198,7 +205,7 @@ def generate_quotation_html(
                     <p style="font-size: 11px; margin: 0; color: #555;"><strong>SKN PERMATA RESOURCES. (202603006346 / JM1037858-H)</strong><br>
                     No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6<br>
                     Bandar Sri Semantan, 28000 Temerloh Pahang<br>
-                    Email: sknpermataresources@gmail.com | Tel: 0139600936/0182500936/01161046685</p>
+                    Email: sknpermataresources@gmail.com | Tel: {phone_number}</p>
                 </td>
             </tr>
         </table>
@@ -243,147 +250,78 @@ def generate_quotation_html(
 
 
 def generate_payslip_html(
-    payslip_no,
-    employee_name,
-    ic_no,
-    bank_info,
-    month_year,
-    date,
-    basic_salary,
-    additions,
-    deductions,
-    gross_total,
-    total_deduction,
-    net_pay,
-    payment_method,
+    payslip_no, employee_name, employee_id, ic_no, designation, month_year, 
+    basic_salary, allowances, deductions, net_salary
 ):
-    additions_rows = ""
-    for name, amt in additions.items():
-        if amt > 0:
-            additions_rows += f"<tr><td style='border: 1px solid #bbb; padding: 4px 8px;'>{name}</td><td style='border: 1px solid #bbb; text-align: right; padding: 4px 8px;'>{amt:,.2f}</td></tr>"
-
-    deductions_rows = ""
-    for name, amt in deductions.items():
-        if amt > 0:
-            deductions_rows += f"<tr><td style='border: 1px solid #bbb; padding: 4px 8px;'>{name}</td><td style='border: 1px solid #bbb; text-align: right; padding: 4px 8px;'>{amt:,.2f}</td></tr>"
+    # Pull phone number safely from Streamlit secrets
+    phone_number = st.secrets["company"]["phone"]
 
     return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <meta charset="UTF-8">
-    <style>
-        @page {{
-            size: A4 landscape;
-            margin: 8mm;
-        }}
-        body {{
-            font-family: Arial, sans-serif;
-            font-size: 11px;
-            color: #000;
-            background: #fff;
-            margin: 0;
-            padding: 0;
-        }}
-        .payslip-box {{
-            width: 100%;
-            max-width: 1050px;
-            margin: auto;
-            background: white;
-            padding: 5px;
-        }}
-    </style>
-    </head>
-    <body>
-    <div class="payslip-box">
-        <!-- Top Header Table with Logo beside Company Name for Perfect Alignment -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px;">
+    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; background: white; color: black;">
+        <!-- Side-by-Side Header Layout -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
             <tr>
-                <td style="border: none; width: 60%; vertical-align: top; padding: 0;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr>
-                            <td style="border: none; width: 65px; vertical-align: middle; padding: 0 8px 0 0;">
-                                {logo_html}
-                            </td>
-                            <td style="border: none; vertical-align: middle; padding: 0;">
-                                <h3 style="margin: 0; color: #1f4e78; font-size: 15px;">SKN PERMATA RESOURCES</h3>
-                                <p style="font-size: 9px; margin: 2px 0 0 0; color: #555;">Co. No: 202603006346 | Tel: 013-9600936</p>
-                            </td>
-                        </tr>
-                    </table>
+                <td style="border: none; width: 65px; vertical-align: middle; padding: 0 10px 0 0;">
+                    {logo_html}
                 </td>
-                <td style="border: none; width: 40%; text-align: right; vertical-align: top; padding: 0;">
-                    <h3 style="margin: 0; color: #333; font-size: 15px;">PAYSLIP</h3>
-                    <p style="font-size: 12px; margin: 2px 0;"><strong>Period:</strong> {month_year}</p>
-                    <p style="font-size: 11px; margin: 2px 0; color: #555;">Date: {date}</p>
+                <td style="border: none; vertical-align: middle; padding: 0;">
+                    <p style="font-size: 11px; margin: 0; color: #555;"><strong>SKN PERMATA RESOURCES. (202603006346 / JM1037858-H)</strong><br>
+                    No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6<br>
+                    Bandar Sri Semantan, 28000 Temerloh Pahang<br>
+                    Email: sknpermataresources@gmail.com | Tel: {phone_number}</p>
                 </td>
             </tr>
         </table>
+        <hr style="margin: 10px 0;">
+        <h3 style="text-align: center; margin: 10px 0;">PAYSLIP FOR {month_year}</h3>
         
-        <!-- Employee Info Table -->
-        <table style="width: 100%; border-collapse: collapse; background: #f9f9f9; margin-bottom: 8px;">
+        <table style="width: 100%; font-size: 14px; margin-bottom: 15px;">
             <tr>
-                <td style="border: 1px solid #bbb; padding: 5px 8px; width: 50%;"><strong>Employee Name:</strong> {employee_name}</td>
-                <td style="border: 1px solid #bbb; padding: 5px 8px; width: 50%;"><strong>I.C. No:</strong> {ic_no}</td>
-            </tr>
-            <tr>
-                <td style="border: 1px solid #bbb; padding: 5px 8px;"><strong>Bank Account:</strong> {bank_info}</td>
-                <td style="border: 1px solid #bbb; padding: 5px 8px;"><strong>Payment Method:</strong> {payment_method}</td>
-            </tr>
-        </table>
-        
-        <!-- Side-by-Side Aligned Tables for Earnings & Deductions -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
-            <tr>
-                <!-- Earnings Table Column -->
-                <td style="width: 49%; vertical-align: top; border: none; padding: 0;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr style="background-color: #2e7d32; color: white;">
-                            <th style="border: 1px solid #2e7d32; padding: 6px; text-align: left; color: white;">Earnings / Additions</th>
-                            <th style="border: 1px solid #2e7d32; padding: 6px; text-align: right; color: white;">Amount (RM)</th>
-                        </tr>
-                        <tr>
-                            <td style="border: 1px solid #bbb; padding: 4px 8px;">Basic Salary</td>
-                            <td style="border: 1px solid #bbb; text-align: right; padding: 4px 8px;">{basic_salary:,.2f}</td>
-                        </tr>
-                        {additions_rows}
-                        <tr style="background-color: #f2f2f2; font-weight: bold;">
-                            <td style="border: 1px solid #bbb; padding: 6px;">Gross Total</td>
-                            <td style="border: 1px solid #bbb; text-align: right; padding: 6px;">{gross_total:,.2f}</td>
-                        </tr>
-                    </table>
+                <td><strong>Employee Name:</strong> {employee_name}<br>
+                    <strong>Employee ID:</strong> {employee_id}<br>
+                    <strong>IC No:</strong> {ic_no}
                 </td>
-                
-                <!-- Spacer Column -->
-                <td style="width: 2%; border: none; padding: 0;"></td>
-                
-                <!-- Deductions Table Column -->
-                <td style="width: 49%; vertical-align: top; border: none; padding: 0;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr style="background-color: #c62828; color: white;">
-                            <th style="border: 1px solid #c62828; padding: 6px; text-align: left; color: white;">Deductions</th>
-                            <th style="border: 1px solid #c62828; padding: 6px; text-align: right; color: white;">Amount (RM)</th>
-                        </tr>
-                        {deductions_rows}
-                        <tr style="background-color: #f2f2f2; font-weight: bold;">
-                            <td style="border: 1px solid #bbb; padding: 6px;">Total Deduction</td>
-                            <td style="border: 1px solid #bbb; text-align: right; padding: 6px;">{total_deduction:,.2f}</td>
-                        </tr>
-                    </table>
+                <td style="text-align: right; vertical-align: top;">
+                    <strong>Payslip No:</strong> {payslip_no}<br>
+                    <strong>Designation:</strong> {designation}<br>
+                    <strong>Month/Year:</strong> {month_year}
                 </td>
             </tr>
         </table>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+                <tr style="background-color: #f2f2f2; border-top: 1px solid #000; border-bottom: 1px solid #000;">
+                    <th style="padding: 8px; text-align: left;">Description</th>
+                    <th style="padding: 8px; text-align: right;">Amount (RM)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 6px; border-bottom: 1px solid #ddd;">Basic Salary</td>
+                    <td style="padding: 6px; border-bottom: 1px solid #ddd; text-align: right;">{basic_salary:,.2f}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px; border-bottom: 1px solid #ddd;">Allowances</td>
+                    <td style="padding: 6px; border-bottom: 1px solid #ddd; text-align: right;">{allowances:,.2f}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px; border-bottom: 1px solid #ddd;">Deductions</td>
+                    <td style="padding: 6px; border-bottom: 1px solid #ddd; text-align: right;">-{deductions:,.2f}</td>
+                </tr>
+            </tbody>
+        </table>
         
-        <!-- Net Payable Banner -->
-        <table style="width: 100%; border-collapse: collapse; background-color: #1f4e78; color: white;">
+        <br>
+        <table style="width: 100%; font-size: 14px;">
             <tr>
-                <td style="border: none; padding: 8px; color: white;"><strong>NET PAYABLE:</strong></td>
-                <td style="border: none; padding: 8px; text-align: right; color: white;"><strong>RM {net_pay:,.2f}</strong></td>
+                <td></td>
+                <td style="text-align: right;">
+                    <h3 style="margin: 5px 0; background-color: #f2f2f2; padding: 8px;">Net Salary: RM {net_salary:,.2f}</h3>
+                </td>
             </tr>
         </table>
     </div>
-    </body>
-    </html>
     """
 
 
