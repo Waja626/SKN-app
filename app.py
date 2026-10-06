@@ -7,8 +7,6 @@ import psycopg2
 import streamlit as st
 import streamlit.components.v1 as components
 from xhtml2pdf import pisa
-import time
-import bcrypt
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -35,101 +33,6 @@ def run_query(query, params=(), fetch=True):
 
     conn.commit()
     conn.close()
-
-
-def init_security_tables_and_admin():
-    """Initializes the users table and seeds the default admin user securely."""
-    try:
-        run_query(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                role TEXT NOT NULL DEFAULT 'staff'
-            )
-        """,
-            fetch=False,
-        )
-
-        # Check if SKNPermata exists
-        # Check if SKNPermata exists
-        res = run_query(
-            "SELECT id FROM users WHERE username = %s", ("SKNPermata",), fetch=True
-        )
-        if not res:
-            admin_password = st.secrets["security"]["admin_password"]
-            hashed_pw = bcrypt.hashpw(
-                admin_password.encode("utf-8"), bcrypt.gensalt()
-            ).decode("utf-8")
-            run_query(
-                "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)",
-                ("SKNPermata", hashed_pw, "admin"),
-                fetch=False,
-            )
-    except Exception as e:
-        print(f"Error initializing security: {e}")
-
-
-# Initialize security tables & admin user on startup
-init_security_tables_and_admin()
-
-# --- AUTHENTICATION & SESSION STATE DEFAULTS ---
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-if "username" not in st.session_state:
-    st.session_state.username = ""
-if "role" not in st.session_state:
-    st.session_state.role = "staff"
-if "last_activity" not in st.session_state:
-    st.session_state.last_activity = time.time()
-
-# Inactivity Timeout Check (15 minutes)
-INACTIVITY_LIMIT = 900
-if st.session_state.authenticated:
-    if time.time() - st.session_state.last_activity > INACTIVITY_LIMIT:
-        st.session_state.authenticated = False
-        st.warning("Session expired due to inactivity. Please log in again.")
-        st.rerun()
-    else:
-        st.session_state.last_activity = time.time()
-
-
-def render_login():
-    st.title("🔐 SKN Permata Resources - Secure Login")
-    st.write("Please log in with your credentials to access the business system.")
-    with st.form("login_form"):
-        username_input = st.text_input("Username")
-        password_input = st.text_input("Password", type="password")
-        submit_btn = st.form_submit_button("Log In")
-
-        if submit_btn:
-            user_record = run_query(
-                "SELECT password_hash, role FROM users WHERE username = %s",
-                (username_input,),
-                fetch=True,
-            )
-            if user_record:
-                stored_hash = user_record[0][0].encode("utf-8")
-                user_role = user_record[0][1]
-                if bcrypt.checkpw(password_input.encode("utf-8"), stored_hash):
-                    st.session_state.authenticated = True
-                    st.session_state.username = username_input
-                    st.session_state.role = user_role
-                    st.session_state.last_activity = time.time()
-                    st.success("Login successful!")
-                    st.rerun()
-                else:
-                    st.error("Invalid username or password.")
-            else:
-                st.error("Invalid username or password.")
-
-
-# --- ACCESS GATE ---
-if not st.session_state.authenticated:
-    render_login()
-    st.stop()
-
 
 # --- CUSTOM CSS FOR LARGE, EASY-TO-CLICK BUTTONS & UI ---
 st.markdown(
@@ -544,18 +447,11 @@ def save_payslip_pdf(
     return html_content, file_path
 
 
-# --- SIDEBAR NAVIGATION (WITH LOGO & USER AUTH INFO) ---
+# --- SIDEBAR NAVIGATION (WITH LOGO) ---
 if os.path.exists("logo.jpeg"):
     st.sidebar.image("logo.jpeg", width=140)
 else:
-    st.sidebar.title("SKN Permata Resources")
-
-st.sidebar.markdown(f"👤 Logged in as: **{st.session_state.username}**")
-st.sidebar.markdown(f"🛡️ Role: **{st.session_state.role.capitalize()}**")
-
-if st.sidebar.button("Log Out"):
-    st.session_state.authenticated = False
-    st.rerun()
+    st.sidebar.title(" SKN Permata Resources")
 
 st.sidebar.write("### 🧭 Quick Menu")
 
@@ -612,12 +508,29 @@ if menu == "📊 Dashboard & Earnings":
 # ==========================================
 elif menu == "🧾 Create Invoice":
     st.title("🧾 Create New Invoice")
-    st.write(
-        "Fill in client details below and **click the big green button** at the bottom."
-    )
+    st.write("Fill in client details below and **click the big green button** at the bottom.")
 
     products = run_query("SELECT item_name, price FROM products")
     product_dict = {p[0]: p[1] for p in products}
+
+    # Initialize item count session state if not exists
+    if "inv_count" not in st.session_state:
+        st.session_state.inv_count = 1
+
+    # Item count control placed OUTSIDE the form so it updates instantly on Enter/Click
+    col_ic1, col_ic2 = st.columns([3, 1])
+    with col_ic1:
+        st.session_state.inv_count = st.number_input(
+            "How many items in this invoice?", 
+            min_value=1, 
+            max_value=20, 
+            value=st.session_state.inv_count,
+            key="inv_count_widget"
+        )
+    with col_ic2:
+        st.write("") # Alignment spacing
+        if st.button("🔄 Apply Count", key="apply_inv_count"):
+            st.rerun()
 
     with st.form("create_invoice_form"):
         col1, col2 = st.columns(2)
@@ -642,17 +555,11 @@ elif menu == "🧾 Create Invoice":
                 "⚠️ No products found. Please add items in 'Products & Price List' first."
             )
 
-        num_items = st.number_input(
-            "How many items in this invoice?",
-            min_value=1,
-            max_value=20,
-            value=1,
-        )
-
         selected_items = []
         total_calc = 0.0
 
-        for i in range(int(num_items)):
+        # Dynamically renders rows based on st.session_state.inv_count
+        for i in range(int(st.session_state.inv_count)):
             cols = st.columns([3, 1, 1, 1])
             with cols[0]:
                 item_name = st.selectbox(
@@ -749,12 +656,29 @@ elif menu == "🧾 Create Invoice":
 # ==========================================
 elif menu == "📑 Create Quotation":
     st.title("📑 Create New Quotation")
-    st.write(
-        "Fill in client details below and **click the big green button** at the bottom."
-    )
+    st.write("Fill in client details below and **click the big green button** at the bottom.")
 
     products = run_query("SELECT item_name, price FROM products")
     product_dict = {p[0]: p[1] for p in products}
+
+    # Initialize item count session state if not exists
+    if "qt_count" not in st.session_state:
+        st.session_state.qt_count = 1
+
+    # Item count control placed OUTSIDE the form
+    col_qc1, col_qc2 = st.columns([3, 1])
+    with col_qc1:
+        st.session_state.qt_count = st.number_input(
+            "How many items?", 
+            min_value=1, 
+            max_value=20, 
+            value=st.session_state.qt_count,
+            key="qt_count_widget"
+        )
+    with col_qc2:
+        st.write("")
+        if st.button("🔄 Apply Count", key="apply_qt_count"):
+            st.rerun()
 
     with st.form("create_quotation_form"):
         col1, col2 = st.columns(2)
@@ -772,14 +696,12 @@ elif menu == "📑 Create Quotation":
 
         st.divider()
         st.subheader("Select Items")
-        num_items = st.number_input(
-            "How many items?", min_value=1, max_value=20, value=1
-        )
 
         selected_items = []
         total_calc = 0.0
 
-        for i in range(int(num_items)):
+        # Dynamically renders rows based on st.session_state.qt_count
+        for i in range(int(st.session_state.qt_count)):
             cols = st.columns([3, 1, 1, 1])
             with cols[0]:
                 item_name = st.selectbox(
@@ -866,7 +788,7 @@ elif menu == "📑 Create Quotation":
                         )
             except Exception as e:
                 st.error(f"Error saving quotation: {e}")
-
+                
 # ==========================================
 # 4. VIEW INVOICES & QUOTATIONS
 # ==========================================
@@ -975,7 +897,7 @@ elif menu == "📂 View Invoices & Quotes":
             st.info("No matching quotations found.")
 
 # ==========================================
-# 5. PAYROLL & PAYSLIPS
+# 5. PAYROLL & PAYSLIPS (BASED ON TEMPLATE)
 # ==========================================
 elif menu == "💵 Payroll & Payslips":
     st.title("💵 Staff Payroll & Payslips")
