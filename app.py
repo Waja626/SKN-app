@@ -7,6 +7,8 @@ import psycopg2
 import streamlit as st
 import streamlit.components.v1 as components
 from xhtml2pdf import pisa
+import time
+import bcrypt
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -33,6 +35,99 @@ def run_query(query, params=(), fetch=True):
 
     conn.commit()
     conn.close()
+
+
+def init_security_tables_and_admin():
+    """Initializes the users table and seeds the default admin user securely."""
+    try:
+        run_query(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'staff'
+            )
+        """,
+            fetch=False,
+        )
+
+        # Check if SKNPermata exists
+        res = run_query(
+            "SELECT id FROM users WHERE username = %s", ("SKNPermata",), fetch=True
+        )
+        if not res:
+            hashed_pw = bcrypt.hashpw(
+                "SKNPerm@t@".encode("utf-8"), bcrypt.gensalt()
+            ).decode("utf-8")
+            run_query(
+                "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)",
+                ("SKNPermata", hashed_pw, "admin"),
+                fetch=False,
+            )
+    except Exception as e:
+        print(f"Error initializing security: {e}")
+
+
+# Initialize security tables & admin user on startup
+init_security_tables_and_admin()
+
+# --- AUTHENTICATION & SESSION STATE DEFAULTS ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
+if "role" not in st.session_state:
+    st.session_state.role = "staff"
+if "last_activity" not in st.session_state:
+    st.session_state.last_activity = time.time()
+
+# Inactivity Timeout Check (15 minutes)
+INACTIVITY_LIMIT = 900
+if st.session_state.authenticated:
+    if time.time() - st.session_state.last_activity > INACTIVITY_LIMIT:
+        st.session_state.authenticated = False
+        st.warning("Session expired due to inactivity. Please log in again.")
+        st.rerun()
+    else:
+        st.session_state.last_activity = time.time()
+
+
+def render_login():
+    st.title("🔐 SKN Permata Resources - Secure Login")
+    st.write("Please log in with your credentials to access the business system.")
+    with st.form("login_form"):
+        username_input = st.text_input("Username")
+        password_input = st.text_input("Password", type="password")
+        submit_btn = st.form_submit_button("Log In")
+
+        if submit_btn:
+            user_record = run_query(
+                "SELECT password_hash, role FROM users WHERE username = %s",
+                (username_input,),
+                fetch=True,
+            )
+            if user_record:
+                stored_hash = user_record[0][0].encode("utf-8")
+                user_role = user_record[0][1]
+                if bcrypt.checkpw(password_input.encode("utf-8"), stored_hash):
+                    st.session_state.authenticated = True
+                    st.session_state.username = username_input
+                    st.session_state.role = user_role
+                    st.session_state.last_activity = time.time()
+                    st.success("Login successful!")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password.")
+            else:
+                st.error("Invalid username or password.")
+
+
+# --- ACCESS GATE ---
+if not st.session_state.authenticated:
+    render_login()
+    st.stop()
+
 
 # --- CUSTOM CSS FOR LARGE, EASY-TO-CLICK BUTTONS & UI ---
 st.markdown(
@@ -447,11 +542,18 @@ def save_payslip_pdf(
     return html_content, file_path
 
 
-# --- SIDEBAR NAVIGATION (WITH LOGO) ---
+# --- SIDEBAR NAVIGATION (WITH LOGO & USER AUTH INFO) ---
 if os.path.exists("logo.jpeg"):
     st.sidebar.image("logo.jpeg", width=140)
 else:
-    st.sidebar.title(" SKN Permata Resources")
+    st.sidebar.title("SKN Permata Resources")
+
+st.sidebar.markdown(f"👤 Logged in as: **{st.session_state.username}**")
+st.sidebar.markdown(f"🛡️ Role: **{st.session_state.role.capitalize()}**")
+
+if st.sidebar.button("Log Out"):
+    st.session_state.authenticated = False
+    st.rerun()
 
 st.sidebar.write("### 🧭 Quick Menu")
 
@@ -871,7 +973,7 @@ elif menu == "📂 View Invoices & Quotes":
             st.info("No matching quotations found.")
 
 # ==========================================
-# 5. PAYROLL & PAYSLIPS (BASED ON TEMPLATE)
+# 5. PAYROLL & PAYSLIPS
 # ==========================================
 elif menu == "💵 Payroll & Payslips":
     st.title("💵 Staff Payroll & Payslips")
