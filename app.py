@@ -53,12 +53,14 @@ def init_security_tables_and_admin():
         )
 
         # Check if SKNPermata exists
+        # Check if SKNPermata exists
         res = run_query(
             "SELECT id FROM users WHERE username = %s", ("SKNPermata",), fetch=True
         )
         if not res:
+            admin_password = st.secrets["security"]["admin_password"]
             hashed_pw = bcrypt.hashpw(
-                "SKNPerm@t@".encode("utf-8"), bcrypt.gensalt()
+                admin_password.encode("utf-8"), bcrypt.gensalt()
             ).decode("utf-8")
             run_query(
                 "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)",
