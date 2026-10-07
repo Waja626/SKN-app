@@ -16,10 +16,7 @@ st.set_page_config(
 )
 
 # --- DATABASE SETUP (SUPABASE / POSTGRESQL) ---
-
-
 def run_query(query, params=(), fetch=True):
-    # PostgreSQL uses %s instead of SQLite's ? for placeholders
     pg_query = query.replace("?", "%s")
 
     conn = psycopg2.connect(st.secrets["postgres"]["connection_string"])
@@ -42,7 +39,6 @@ st.markdown(
     .stTextInput input, .stNumberInput input, .stSelectbox select { font-size: 16px !important; }
     h1 { color: #1f4e78; }
     
-    /* Make submit buttons big, green, and very easy to click with a mouse */
     .stFormSubmitButton button {
         background-color: #2e7d32 !important;
         color: white !important;
@@ -94,14 +90,18 @@ logo_html = (
 )
 
 
-# --- PDF GENERATION HELPERS ---
+# --- PDF GENERATION HELPERS (SECURED WITH SECRETS) ---
 def generate_invoice_html(
     inv_no, client_name, client_address, date, terms, items, total_amount, status
 ):
-    # Pull sensitive info safely from Streamlit secrets
-    phone_number = st.secrets["company"]["phone"]
-    bank_name = st.secrets["company"]["bank_name"]
-    bank_account = st.secrets["company"]["bank_account"]
+    try:
+        phone_number = st.secrets["company"]["phone"]
+        bank_name = st.secrets["company"]["bank_name"]
+        bank_account = st.secrets["company"]["bank_account"]
+    except Exception:
+        phone_number = "0139600936 / 0182500936 / 01161046685"
+        bank_name = "BANK MUAMALAT"
+        bank_account = "06040002074710"
 
     items_html = ""
     for idx, item in enumerate(items, 1):
@@ -178,8 +178,10 @@ def generate_invoice_html(
 def generate_quotation_html(
     quote_no, client_name, client_address, date, terms, items, total_amount
 ):
-    # Pull phone number safely from Streamlit secrets
-    phone_number = st.secrets["company"]["phone"]
+    try:
+        phone_number = st.secrets["company"]["phone"]
+    except Exception:
+        phone_number = "0139600936 / 0182500936 / 01161046685"
 
     items_html = ""
     for idx, item in enumerate(items, 1):
@@ -195,7 +197,6 @@ def generate_quotation_html(
 
     return f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; background: white; color: black;">
-        <!-- Side-by-Side Header Layout to Save Space -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
             <tr>
                 <td style="border: none; width: 65px; vertical-align: middle; padding: 0 10px 0 0;">
@@ -250,18 +251,66 @@ def generate_quotation_html(
 
 
 def generate_payslip_html(
-    payslip_no, employee_name, employee_id, ic_no, designation, month_year, 
-    basic_salary, allowances, deductions, net_salary
+    payslip_no,
+    employee_name,
+    ic_no,
+    bank_info,
+    month_year,
+    date,
+    basic_salary,
+    additions,
+    deductions,
+    gross_total,
+    total_deduction,
+    net_pay,
+    payment_method,
 ):
-    # Safely pull phone number from secrets with a built-in fallback to prevent crashes
     try:
         phone_number = st.secrets["company"]["phone"]
     except Exception:
         phone_number = "0139600936 / 0182500936 / 01161046685"
 
+    # Handle additions formatting (dictionary or string)
+    if isinstance(additions, str):
+        try:
+            additions = json.loads(additions)
+        except Exception:
+            additions = {}
+    
+    additions_rows = f"""
+        <tr>
+            <td style="padding: 6px; border-bottom: 1px solid #ddd;">Basic Salary</td>
+            <td style="padding: 6px; border-bottom: 1px solid #ddd; text-align: right;">{basic_salary:,.2f}</td>
+        </tr>
+    """
+    for key, val in additions.items():
+        if val > 0:
+            additions_rows += f"""
+            <tr>
+                <td style="padding: 6px; border-bottom: 1px solid #ddd;">{key}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #ddd; text-align: right;">{val:,.2f}</td>
+            </tr>
+            """
+
+    # Handle deductions formatting (dictionary or string)
+    if isinstance(deductions, str):
+        try:
+            deductions = json.loads(deductions)
+        except Exception:
+            deductions = {}
+
+    deductions_rows = ""
+    for key, val in deductions.items():
+        if val > 0:
+            deductions_rows += f"""
+            <tr>
+                <td style="padding: 6px; border-bottom: 1px solid #ddd;">{key}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #ddd; text-align: right;">-{val:,.2f}</td>
+            </tr>
+            """
+
     return f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; background: white; color: black;">
-        <!-- Side-by-Side Header Layout -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
             <tr>
                 <td style="border: none; width: 65px; vertical-align: middle; padding: 0 10px 0 0;">
@@ -281,13 +330,13 @@ def generate_payslip_html(
         <table style="width: 100%; font-size: 14px; margin-bottom: 15px;">
             <tr>
                 <td><strong>Employee Name:</strong> {employee_name}<br>
-                    <strong>Employee ID:</strong> {employee_id}<br>
-                    <strong>IC No:</strong> {ic_no}
+                    <strong>I.C. No:</strong> {ic_no}<br>
+                    <strong>Bank Info:</strong> {bank_info}
                 </td>
                 <td style="text-align: right; vertical-align: top;">
                     <strong>Payslip No:</strong> {payslip_no}<br>
-                    <strong>Designation:</strong> {designation}<br>
-                    <strong>Month/Year:</strong> {month_year}
+                    <strong>Date:</strong> {date}<br>
+                    <strong>Payment Method:</strong> {payment_method}
                 </td>
             </tr>
         </table>
@@ -300,27 +349,20 @@ def generate_payslip_html(
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td style="padding: 6px; border-bottom: 1px solid #ddd;">Basic Salary</td>
-                    <td style="padding: 6px; border-bottom: 1px solid #ddd; text-align: right;">{basic_salary:,.2f}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 6px; border-bottom: 1px solid #ddd;">Allowances</td>
-                    <td style="padding: 6px; border-bottom: 1px solid #ddd; text-align: right;">{allowances:,.2f}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 6px; border-bottom: 1px solid #ddd;">Deductions</td>
-                    <td style="padding: 6px; border-bottom: 1px solid #ddd; text-align: right;">-{deductions:,.2f}</td>
-                </tr>
+                {additions_rows}
+                {deductions_rows}
             </tbody>
         </table>
         
         <br>
         <table style="width: 100%; font-size: 14px;">
             <tr>
-                <td></td>
+                <td>
+                    <strong>Gross Total:</strong> RM {gross_total:,.2f}<br>
+                    <strong>Total Deductions:</strong> RM {total_deduction:,.2f}
+                </td>
                 <td style="text-align: right;">
-                    <h3 style="margin: 5px 0; background-color: #f2f2f2; padding: 8px;">Net Salary: RM {net_salary:,.2f}</h3>
+                    <h3 style="margin: 5px 0; background-color: #f2f2f2; padding: 8px;">Net Pay: RM {net_pay:,.2f}</h3>
                 </td>
             </tr>
         </table>
@@ -407,7 +449,7 @@ def save_payslip_pdf(
 if os.path.exists("logo.jpeg"):
     st.sidebar.image("logo.jpeg", width=140)
 else:
-    st.sidebar.title(" SKN Permata Resources")
+    st.sidebar.title("SKN Permata Resources")
 
 st.sidebar.write("### 🧭 Quick Menu")
 
@@ -469,11 +511,9 @@ elif menu == "🧾 Create Invoice":
     products = run_query("SELECT item_name, price FROM products")
     product_dict = {p[0]: p[1] for p in products}
 
-    # Initialize item count session state if not exists
     if "inv_count" not in st.session_state:
         st.session_state.inv_count = 1
 
-    # Item count control placed OUTSIDE the form so it updates instantly on Enter/Click
     col_ic1, col_ic2 = st.columns([3, 1])
     with col_ic1:
         st.session_state.inv_count = st.number_input(
@@ -484,7 +524,7 @@ elif menu == "🧾 Create Invoice":
             key="inv_count_widget"
         )
     with col_ic2:
-        st.write("") # Alignment spacing
+        st.write("")
         if st.button("🔄 Apply Count", key="apply_inv_count"):
             st.rerun()
 
@@ -514,7 +554,6 @@ elif menu == "🧾 Create Invoice":
         selected_items = []
         total_calc = 0.0
 
-        # Dynamically renders rows based on st.session_state.inv_count
         for i in range(int(st.session_state.inv_count)):
             cols = st.columns([3, 1, 1, 1])
             with cols[0]:
@@ -617,11 +656,9 @@ elif menu == "📑 Create Quotation":
     products = run_query("SELECT item_name, price FROM products")
     product_dict = {p[0]: p[1] for p in products}
 
-    # Initialize item count session state if not exists
     if "qt_count" not in st.session_state:
         st.session_state.qt_count = 1
 
-    # Item count control placed OUTSIDE the form
     col_qc1, col_qc2 = st.columns([3, 1])
     with col_qc1:
         st.session_state.qt_count = st.number_input(
@@ -656,7 +693,6 @@ elif menu == "📑 Create Quotation":
         selected_items = []
         total_calc = 0.0
 
-        # Dynamically renders rows based on st.session_state.qt_count
         for i in range(int(st.session_state.qt_count)):
             cols = st.columns([3, 1, 1, 1])
             with cols[0]:
@@ -853,7 +889,7 @@ elif menu == "📂 View Invoices & Quotes":
             st.info("No matching quotations found.")
 
 # ==========================================
-# 5. PAYROLL & PAYSLIPS (BASED ON TEMPLATE)
+# 5. PAYROLL & PAYSLIPS
 # ==========================================
 elif menu == "💵 Payroll & Payslips":
     st.title("💵 Staff Payroll & Payslips")
@@ -870,22 +906,16 @@ elif menu == "💵 Payroll & Payslips":
                 payslip_no = st.text_input(
                     "Payslip Number", value=get_next_payslip_no()
                 )
-                employee_name = st.text_input(
-                    "Employee Name", value=""
-                )
+                employee_name = st.text_input("Employee Name", value="")
                 ic_no = st.text_input("I.C. No", value="")
             with col2:
-                month_year = st.text_input(
-                    "Payslip Month & Year", value=""
-                )
+                month_year = st.text_input("Payslip Month & Year", value="")
                 date = st.text_input("Date", value="")
                 payment_method = st.text_input(
                     "Payment Method / Cheque No", value="Autocredit"
                 )
 
-            bank_info = st.text_input(
-                "Bank Account Details", value=""
-            )
+            bank_info = st.text_input("Bank Account Details", value="")
 
             st.divider()
             st.subheader("💰 Salary & Additions")
@@ -918,12 +948,8 @@ elif menu == "💵 Payroll & Payslips":
             st.subheader("📉 Deductions")
             col_d1, col_d2 = st.columns(2)
             with col_d1:
-                epf = st.number_input(
-                    "EPF (RM)", value=0.00, format="%.2f"
-                )
-                socso = st.number_input(
-                    "SOCSO (RM)", value=0.00, format="%.2f"
-                )
+                epf = st.number_input("EPF (RM)", value=0.00, format="%.2f")
+                socso = st.number_input("SOCSO (RM)", value=0.00, format="%.2f")
                 sip = st.number_input(
                     "SIP (Employment Ins. Sch) (RM)", value=0.00, format="%.2f"
                 )
@@ -936,7 +962,6 @@ elif menu == "💵 Payroll & Payslips":
                     "Last Month Deduction (RM)", value=0.00, format="%.2f"
                 )
 
-            # Calculation
             additions_dict = {
                 "Perfect Attendance": perfect_attendance,
                 "Performance Allowance": performance_allowance,
