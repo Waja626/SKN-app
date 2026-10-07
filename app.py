@@ -9,14 +9,25 @@ import psycopg2
 import streamlit as st
 import streamlit.components.v1 as components
 from xhtml2pdf import pisa
+import streamlit.components.v1 as components
 
+# Auto-refresh script to keep the app awake while the tab is open (every 10 minutes)
+components.html(
+    """
+    <script>
+        setTimeout(function() {
+            window.location.reload();
+        }, 600000); // 600,000 ms = 10 minutes
+    </script>
+    """,
+    height=0,
+)
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="SKN Permata Resources - Business System",
     page_icon="logo.jpeg",
     layout="wide",
 )
-
 # --- DATABASE SETUP (SUPABASE / POSTGRESQL) ---
 def run_query(query, params=(), fetch=True):
     pg_query = query.replace("?", "%s")
