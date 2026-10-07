@@ -65,7 +65,6 @@ def init_default_admin():
 init_default_admin()
 
 # --- CUSTOM CSS FOR UI ---
-# --- CUSTOM CSS FOR UI ---
 st.markdown(
     """
     <style>
@@ -113,7 +112,7 @@ if not st.session_state.logged_in:
     with col_l2:
         if os.path.exists("logo.jpeg"):
             st.image("logo.jpeg", width=120)
-        st.title("🔒 System Login")
+        st.title("System Login")
         st.write("Please enter your credentials to access SKN Permata Resources.")
 
         if st.session_state.failed_attempts >= 5:
@@ -122,7 +121,7 @@ if not st.session_state.logged_in:
             with st.form("login_form"):
                 username_input = st.text_input("Username", help="Enter your assigned staff/admin username.")
                 password_input = st.text_input("Password", type="password", help="Enter your secret account password.")
-                submit_login = st.form_submit_button("🔑 Login Securely")
+                submit_login = st.form_submit_button("🔑 Login")
 
                 if submit_login:
                     try:
