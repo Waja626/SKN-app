@@ -376,7 +376,6 @@ def generate_payslip_html(employee_name, ic_no, bank_info, month_year, date, bas
                     <p style="font-size: 11px; margin: 0; color: #555;">
                     (202603006346 / JM1037858-H)<br>
                     No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6, Bandar Sri Semantan, 28000 Temerloh Pahang<br>
-                    Email: sknpermataresources@gmail.com | Tel: {phone_number}
                     </p>
                 </td>
                 <td style="border: none; text-align: right; vertical-align: top; padding: 0;">
