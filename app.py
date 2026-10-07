@@ -253,8 +253,11 @@ def generate_payslip_html(
     payslip_no, employee_name, employee_id, ic_no, designation, month_year, 
     basic_salary, allowances, deductions, net_salary
 ):
-    # Pull phone number safely from Streamlit secrets
-    phone_number = st.secrets["company"]["phone"]
+    # Safely pull phone number from secrets with a built-in fallback to prevent crashes
+    try:
+        phone_number = st.secrets["company"]["phone"]
+    except Exception:
+        phone_number = "0139600936 / 0182500936 / 01161046685"
 
     return f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; background: white; color: black;">
