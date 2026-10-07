@@ -118,9 +118,9 @@ if not st.session_state.logged_in:
             st.error("🚨 Too many failed login attempts. Account access temporarily throttled for security.")
         else:
             with st.form("login_form"):
-                username_input = st.text_input("Username", help="Enter your assigned staff/admin username.")
-                password_input = st.text_input("Password", type="password", help="Enter your secret account password.")
-                submit_login = st.form_submit_button("🔑 Login Securely")
+                username_input = st.text_input("Username", help="Enter username.")
+                password_input = st.text_input("Password", type="password", help="Enter password.")
+                submit_login = st.form_submit_button("🔑 Login")
 
                 if submit_login:
                     try:
