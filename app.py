@@ -860,7 +860,7 @@ elif menu == "💵 Payroll & Payslips":
                 basic_salary = st.number_input("Basic Salary (RM)", value=0.00, format="%.2f")
                 perfect_attendance = st.number_input("Perfect Attendance (RM)", value=0.00, format="%.2f")
                 performance_allowance = st.number_input("Performance Allowance (RM)", value=0.00, format="%.2f")
-                transport_allowance = st.number_input("Transport Allowance (RM)", value=100.00, format="%.2f")
+                transport_allowance = st.number_input("Transport Allowance (RM)", value=0.00, format="%.2f")
             with col_a2:
                 outstation_allowance = st.number_input("Outstation Allowance (RM)", value=0.00, format="%.2f")
                 last_month_addition = st.number_input("Last Month Addition (RM)", value=0.00, format="%.2f")
