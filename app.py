@@ -64,6 +64,12 @@ def init_default_admin():
 
 init_default_admin()
 
+# --- LOAD LOGO FOR BASE64 & HTML ---
+logo_base64 = ""
+if os.path.exists("logo.jpeg"):
+    with open("logo.jpeg", "rb") as img_file:
+        logo_base64 = base64.b64encode(img_file.read()).decode("utf-8")
+
 # --- CUSTOM CSS FOR UI ---
 st.markdown(
     """
@@ -105,14 +111,21 @@ if "failed_attempts" not in st.session_state:
     st.session_state.failed_attempts = 0
 
 if not st.session_state.logged_in:
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_l1, col_l2, col_l3 = st.columns([1, 1.8, 1])
     
     with col_l2:
-        if os.path.exists("logo.jpeg"):
-            st.image("logo.jpeg", width=120)
-        st.title("🔒 System Login")
-        st.write("Please enter your credentials to access SKN Permata Resources.")
+        if logo_base64:
+            st.markdown(
+                f"""
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <img src="data:image/jpeg;base64,{logo_base64}" width="180" style="border-radius: 12px; box-shadow: 0px 4px 10px rgba(0,0,0,0.15);">
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        st.markdown("<h2 style='text-align: center; color: #1f4e78;'>🔒 System Login</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #555; margin-bottom: 25px;'>Please enter your credentials to access SKN Permata Resources.</p>", unsafe_allow_html=True)
 
         if st.session_state.failed_attempts >= 5:
             st.error("🚨 Too many failed login attempts. Account access temporarily throttled for security.")
@@ -163,11 +176,6 @@ def get_next_quote_no():
     return f"QT-{datetime.now().strftime('%y%m')}-{next_id:03d}"
 
 # --- LOAD LOGO FOR HTML TEMPLATES ---
-logo_base64 = ""
-if os.path.exists("logo.jpeg"):
-    with open("logo.jpeg", "rb") as img_file:
-        logo_base64 = base64.b64encode(img_file.read()).decode("utf-8")
-
 logo_html = (
     f'<img src="data:image/jpeg;base64,{logo_base64}" style="max-height: 55px; margin-bottom: 5px;" />'
     if logo_base64
