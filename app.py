@@ -157,11 +157,6 @@ def get_next_quote_no():
     next_id = (res[0][0] if res else 0) + 1
     return f"QT-{datetime.now().strftime('%y%m')}-{next_id:03d}"
 
-def get_next_payslip_no():
-    res = run_query("SELECT COUNT(*) FROM payroll", fetch=True)
-    next_id = (res[0][0] if res else 0) + 1
-    return f"PAY-{datetime.now().strftime('%y%m')}-{next_id:03d}"
-
 # --- LOAD LOGO FOR HTML TEMPLATES ---
 logo_base64 = ""
 if os.path.exists("logo.jpeg"):
@@ -320,7 +315,7 @@ def generate_quotation_html(quote_no, client_name, client_address, date, terms, 
     </div>
     """
 
-def generate_payslip_html(payslip_no, employee_name, ic_no, bank_info, month_year, date, basic_salary, additions, deductions, gross_total, total_deduction, net_pay, payment_method):
+def generate_payslip_html(employee_name, ic_no, bank_info, month_year, date, basic_salary, additions, deductions, gross_total, total_deduction, net_pay, payment_method):
     phone_number = st.secrets["company"]["phone"]
 
     if isinstance(additions, str):
@@ -416,11 +411,7 @@ def generate_payslip_html(payslip_no, employee_name, ic_no, bank_info, month_yea
                 <td style="padding: 10px 12px; width: 50%; vertical-align: top;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <tr>
-                            <td style="border:none; padding: 3px 0; width: 110px; color: #666;">Payslip No:</td>
-                            <td style="border:none; padding: 3px 0; font-weight: bold;">{payslip_no}</td>
-                        </tr>
-                        <tr>
-                            <td style="border:none; padding: 3px 0; color: #666;">Pay Date:</td>
+                            <td style="border:none; padding: 3px 0; width: 110px; color: #666;">Pay Date:</td>
                             <td style="border:none; padding: 3px 0;">{date}</td>
                         </tr>
                         <tr>
@@ -476,7 +467,7 @@ def generate_payslip_html(payslip_no, employee_name, ic_no, bank_info, month_yea
         <table style="width: 100%; border-collapse: collapse; margin-top: 15px; border: 2px solid #1f4e78; background-color: #f0f4f8;">
             <tr>
                 <td style="padding: 12px 15px; border: none; vertical-align: middle;">
-                    <span style="font-size: 15px; font-weight: bold; color: #1f4e78;">NET PAY (TAK BERSIH):</span>
+                    <span style="font-size: 15px; font-weight: bold; color: #1f4e78;">NET PAY (GAJI BERSIH):</span>
                 </td>
                 <td style="padding: 12px 15px; border: none; text-align: right; vertical-align: middle;">
                     <span style="font-size: 18px; font-weight: bold; color: #1f4e78;">RM {net_pay:,.2f}</span>
@@ -518,9 +509,9 @@ def save_quotation_pdf(quote_no, client_name, client_address, date, terms, items
     save_html_as_pdf(html_content, file_path)
     return html_content, file_path
 
-def save_payslip_pdf(payslip_no, employee_name, ic_no, bank_info, month_year, date, basic_salary, additions, deductions, gross_total, total_deduction, net_pay, payment_method):
+def save_payslip_pdf(employee_name, ic_no, bank_info, month_year, date, basic_salary, additions, deductions, gross_total, total_deduction, net_pay, payment_method):
     os.makedirs("payroll_folder", exist_ok=True)
-    html_content = generate_payslip_html(payslip_no, employee_name, ic_no, bank_info, month_year, date, basic_salary, additions, deductions, gross_total, total_deduction, net_pay, payment_method)
+    html_content = generate_payslip_html(employee_name, ic_no, bank_info, month_year, date, basic_salary, additions, deductions, gross_total, total_deduction, net_pay, payment_method)
     file_path = os.path.join("payroll_folder", f"Payslip_{employee_name}_{month_year}.pdf")
     save_html_as_pdf(html_content, file_path)
     return html_content, file_path
@@ -824,15 +815,14 @@ elif menu == "💵 Payroll & Payslips":
         with st.form("create_payslip_form"):
             col1, col2 = st.columns(2)
             with col1:
-                payslip_no = st.text_input("Payslip Number", value=get_next_payslip_no())
                 employee_name = st.text_input("Employee Name", value="")
                 ic_no = st.text_input("I.C. No", value="")
+                bank_info = st.text_input("Bank Account Details", value="")
             with col2:
-                month_year = st.text_input("Payslip Month & Year", value="")
+                month_year = st.text_input("Payslip Month & Year (e.g. October 2026)", value="")
                 date = st.text_input("Date", value="")
                 payment_method = st.text_input("Payment Method / Cheque No", value="Autocredit")
 
-            bank_info = st.text_input("Bank Account Details", value="")
             st.divider()
             st.subheader("💰 Salary & Additions")
             
@@ -887,10 +877,10 @@ elif menu == "💵 Payroll & Payslips":
             try:
                 run_query(
                     "INSERT INTO payroll (payslip_no, employee_name, ic_no, bank_info, month_year, date, basic_salary, additions_json, deductions_json, gross_total, total_deduction, net_pay, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (payslip_no, employee_name, ic_no, bank_info, month_year, date, basic_salary, json.dumps(additions_dict), json.dumps(deductions_dict), gross_total, total_deduction, net_pay, payment_method),
+                    ("-", employee_name, ic_no, bank_info, month_year, date, basic_salary, json.dumps(additions_dict), json.dumps(deductions_dict), gross_total, total_deduction, net_pay, payment_method),
                     fetch=False,
                 )
-                html_content, pdf_path = save_payslip_pdf(payslip_no, employee_name, ic_no, bank_info, month_year, date, basic_salary, additions_dict, deductions_dict, gross_total, total_deduction, net_pay, payment_method)
+                html_content, pdf_path = save_payslip_pdf(employee_name, ic_no, bank_info, month_year, date, basic_salary, additions_dict, deductions_dict, gross_total, total_deduction, net_pay, payment_method)
                 st.success(f"✅ Payslip for {employee_name} ({month_year}) successfully created and saved!")
 
                 st.subheader("📄 Payslip Preview")
@@ -912,14 +902,14 @@ elif menu == "💵 Payroll & Payslips":
 
         payslips = run_query(query_pr, params_pr)
         if payslips:
-            p_options = {f"Payslip #{p[1]} - {p[2]} ({p[5]}) [Net: RM {p[12]:,.2f}]": p for p in payslips}
+            p_options = {f"Payslip - {p[2]} ({p[5]}) [Net: RM {p[12]:,.2f}]": p for p in payslips}
             selected_p_label = st.selectbox("Select payslip to view:", list(p_options.keys()), key="select_payslip_list")
             p_data = p_options[selected_p_label]
 
             additions_loaded = json.loads(p_data[8])
             deductions_loaded = json.loads(p_data[9])
 
-            html_content, pdf_path = save_payslip_pdf(p_data[1], p_data[2], p_data[3], p_data[4], p_data[5], p_data[6], p_data[7], additions_loaded, deductions_loaded, p_data[10], p_data[11], p_data[12], p_data[13])
+            html_content, pdf_path = save_payslip_pdf(p_data[2], p_data[3], p_data[4], p_data[5], p_data[6], p_data[7], additions_loaded, deductions_loaded, p_data[10], p_data[11], p_data[12], p_data[13])
             components.html(html_content, height=550, scrolling=True)
             
             col_p1, col_p2 = st.columns(2)
