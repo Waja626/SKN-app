@@ -65,9 +65,16 @@ def init_default_admin():
 init_default_admin()
 
 # --- CUSTOM CSS FOR UI ---
+# --- CUSTOM CSS FOR UI ---
 st.markdown(
     """
     <style>
+    /* Make sidebar Quick Menu text larger */
+    [data-testid="stSidebar"] .stRadio label p {
+        font-size: 20px !important;
+        font-weight: 600 !important;
+    }
+
     .stRadio label { font-size: 18px !important; font-weight: bold !important; }
     .stTextInput input, .stNumberInput input, .stSelectbox select { font-size: 16px !important; }
     h1 { color: #1f4e78; }
