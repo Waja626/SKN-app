@@ -478,7 +478,7 @@ def generate_payslip_html(employee_name, ic_no, bank_info, month_year, date, bas
         <table style="width: 100%; border-collapse: collapse; margin-top: 15px; border: 2px solid #1f4e78; background-color: #f0f4f8;">
             <tr>
                 <td style="padding: 12px 15px; border: none; vertical-align: middle;">
-                    <span style="font-size: 15px; font-weight: bold; color: #1f4e78;">NET PAY (GAJI BERSIH):</span>
+                    <span style="font-size: 15px; font-weight: bold; color: #1f4e78;">NET PAY :</span>
                 </td>
                 <td style="padding: 12px 15px; border: none; text-align: right; vertical-align: middle;">
                     <span style="font-size: 18px; font-weight: bold; color: #1f4e78;">RM {net_pay:,.2f}</span>
@@ -842,7 +842,7 @@ elif menu == "💵 Payroll & Payslips":
                 basic_salary = st.number_input("Basic Salary (RM)", value=0.00, format="%.2f")
                 perfect_attendance = st.number_input("Perfect Attendance (RM)", value=0.00, format="%.2f")
                 performance_allowance = st.number_input("Performance Allowance (RM)", value=0.00, format="%.2f")
-                transport_allowance = st.number_input("Transport Allowance (RM)", value=100.00, format="%.2f")
+                transport_allowance = st.number_input("Transport Allowance (RM)", value=0.00, format="%.2f")
             with col_a2:
                 overtime_amount = st.number_input("Overtime Amount (RM)", value=0.00, format="%.2f")
                 outstation_allowance = st.number_input("Outstation Allowance (RM)", value=0.00, format="%.2f")
