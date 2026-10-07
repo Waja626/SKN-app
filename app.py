@@ -73,7 +73,6 @@ st.markdown(
         font-size: 20px !important;
         font-weight: 600 !important;
     }
-
     .stRadio label { font-size: 18px !important; font-weight: bold !important; }
     .stTextInput input, .stNumberInput input, .stSelectbox select { font-size: 16px !important; }
     h1 { color: #1f4e78; }
@@ -112,7 +111,7 @@ if not st.session_state.logged_in:
     with col_l2:
         if os.path.exists("logo.jpeg"):
             st.image("logo.jpeg", width=120)
-        st.title("System Login")
+        st.title("🔒 System Login")
         st.write("Please enter your credentials to access SKN Permata Resources.")
 
         if st.session_state.failed_attempts >= 5:
@@ -121,7 +120,7 @@ if not st.session_state.logged_in:
             with st.form("login_form"):
                 username_input = st.text_input("Username", help="Enter your assigned staff/admin username.")
                 password_input = st.text_input("Password", type="password", help="Enter your secret account password.")
-                submit_login = st.form_submit_button("🔑 Login")
+                submit_login = st.form_submit_button("🔑 Login Securely")
 
                 if submit_login:
                     try:
@@ -576,6 +575,14 @@ if menu == "📊 Dashboard & Earnings":
     col4.metric("Net Profit", f"RM {net_profit:,.2f}")
 
     st.divider()
+    st.subheader("📈 Financial Overview Chart")
+    chart_data = pd.DataFrame({
+        "Metric": ["Total Invoiced", "Total Collected", "Total Expenses", "Net Profit"],
+        "Amount (RM)": [total_invoiced, total_earnings, total_expenses + total_payroll, net_profit]
+    })
+    st.bar_chart(chart_data.set_index("Metric"))
+
+    st.divider()
     st.subheader("📌 Quick Guide for Beginners:")
     st.success(
         "1. **Create Invoice/Quotation:** Choose how many items you want, type a few letters in the **🔍 Search Item** box to quickly find products, fill in quantities, and click the big green button at the bottom.\n"
@@ -773,7 +780,7 @@ elif menu == "📂 View Invoices & Quotes":
 
         invoices = run_query(query, params)
         if invoices:
-            inv_options = {f"Inv #{inv[1]} - {inv[2]} (RM {inv[7]:,.2f})": inv for inv in invoices}
+            inv_options = {f"Inv #{inv[1]} - {inv[2]} (RM {inv[7]:,.2f}) [{inv[8]}]": inv for inv in invoices}
             selected_inv_label = st.selectbox("Select invoice from list:", list(inv_options.keys()))
             inv = inv_options[selected_inv_label]
 
@@ -781,13 +788,19 @@ elif menu == "📂 View Invoices & Quotes":
             invoice_html, pdf_path = save_invoice_pdf(inv[1], inv[2], inv[3], inv[4], inv[5], items, inv[7], inv[8])
             components.html(invoice_html, height=650, scrolling=True)
             
-            col_d1, col_d2 = st.columns(2)
+            col_d1, col_d2, col_d3 = st.columns(3)
             with col_d1:
                 if os.path.exists(pdf_path):
                     with open(pdf_path, "rb") as pdf_file:
-                        st.download_button("📥 Download Invoice PDF file", pdf_file, file_name=f"Invoice_{inv[1]}.pdf", mime="application/pdf", key="dl_inv_btn")
+                        st.download_button("📥 Download PDF", pdf_file, file_name=f"Invoice_{inv[1]}.pdf", mime="application/pdf", key="dl_inv_btn")
             with col_d2:
-                if st.button("🗑️ Delete Invoice", key="del_inv_btn"):
+                new_status = "Paid" if inv[8] == "Unpaid" else "Unpaid"
+                if st.button(f"🔄 Mark as {new_status}", key=f"toggle_status_{inv[0]}"):
+                    run_query("UPDATE invoices SET status=? WHERE id=?", (new_status, inv[0]), fetch=False)
+                    st.success(f"✅ Invoice #{inv[1]} status updated to {new_status}!")
+                    st.rerun()
+            with col_d3:
+                if st.button("🗑️ Delete", key="del_inv_btn"):
                     run_query("DELETE FROM invoices WHERE id=?", (inv[0],), fetch=False)
                     st.success(f"✅ Invoice #{inv[1]} deleted successfully!")
                     st.rerun()
@@ -860,7 +873,7 @@ elif menu == "💵 Payroll & Payslips":
                 basic_salary = st.number_input("Basic Salary (RM)", value=0.00, format="%.2f")
                 perfect_attendance = st.number_input("Perfect Attendance (RM)", value=0.00, format="%.2f")
                 performance_allowance = st.number_input("Performance Allowance (RM)", value=0.00, format="%.2f")
-                transport_allowance = st.number_input("Transport Allowance (RM)", value=0.00, format="%.2f")
+                transport_allowance = st.number_input("Transport Allowance (RM)", value=100.00, format="%.2f")
             with col_a2:
                 outstation_allowance = st.number_input("Outstation Allowance (RM)", value=0.00, format="%.2f")
                 last_month_addition = st.number_input("Last Month Addition (RM)", value=0.00, format="%.2f")
@@ -1081,6 +1094,9 @@ elif menu == "👥 Worker Attendance":
         if summary_rows:
             df_summary = pd.DataFrame(summary_rows)
             st.dataframe(df_summary, use_container_width=True)
+            
+            csv_summary = df_summary.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Download Attendance Summary CSV", csv_summary, file_name=f"Attendance_Summary_{selected_month_name}_{selected_year}.csv", mime="text/csv")
         else:
             st.info(f"No attendance records found for {selected_month_name} {selected_year}.")
 
@@ -1164,5 +1180,8 @@ elif menu == "💸 Expense Tracker":
     if expenses_data:
         df_expenses = pd.DataFrame(expenses_data, columns=["Date", "Category", "Description", "Amount (RM)"])
         st.dataframe(df_expenses, use_container_width=True)
+        
+        csv_exp = df_expenses.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Download Expenses as CSV", csv_exp, file_name=f"Expenses_{datetime.today().strftime('%Y%m%d')}.csv", mime="text/csv")
     else:
         st.info("No expenses found.")
