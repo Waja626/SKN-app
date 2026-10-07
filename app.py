@@ -9,25 +9,14 @@ import psycopg2
 import streamlit as st
 import streamlit.components.v1 as components
 from xhtml2pdf import pisa
-import streamlit.components.v1 as components
 
-# Auto-refresh script to keep the app awake while the tab is open (every 10 minutes)
-components.html(
-    """
-    <script>
-        setTimeout(function() {
-            window.location.reload();
-        }, 600000); // 600,000 ms = 10 minutes
-    </script>
-    """,
-    height=0,
-)
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="SKN Permata Resources - Business System",
     page_icon="logo.jpeg",
     layout="wide",
 )
+
 # --- DATABASE SETUP (SUPABASE / POSTGRESQL) ---
 def run_query(query, params=(), fetch=True):
     pg_query = query.replace("?", "%s")
@@ -387,6 +376,7 @@ def generate_payslip_html(employee_name, ic_no, bank_info, month_year, date, bas
                     <p style="font-size: 11px; margin: 0; color: #555;">
                     (202603006346 / JM1037858-H)<br>
                     No 13 Jalan Tingkat Bawah, Jalan Pak Sako 6, Bandar Sri Semantan, 28000 Temerloh Pahang<br>
+                    Email: sknpermataresources@gmail.com | Tel: {phone_number}
                     </p>
                 </td>
                 <td style="border: none; text-align: right; vertical-align: top; padding: 0;">
@@ -477,7 +467,7 @@ def generate_payslip_html(employee_name, ic_no, bank_info, month_year, date, bas
         <table style="width: 100%; border-collapse: collapse; margin-top: 15px; border: 2px solid #1f4e78; background-color: #f0f4f8;">
             <tr>
                 <td style="padding: 12px 15px; border: none; vertical-align: middle;">
-                    <span style="font-size: 15px; font-weight: bold; color: #1f4e78;">NET PAY :</span>
+                    <span style="font-size: 15px; font-weight: bold; color: #1f4e78;">NET PAY (GAJI BERSIH):</span>
                 </td>
                 <td style="padding: 12px 15px; border: none; text-align: right; vertical-align: middle;">
                     <span style="font-size: 18px; font-weight: bold; color: #1f4e78;">RM {net_pay:,.2f}</span>
@@ -584,7 +574,7 @@ if menu == "📊 Dashboard & Earnings":
     st.subheader("📌 Quick Guide:")
     st.info(
         "1. Go to **Payroll & Payslips** to generate staff payslips.\n"
-        "2. Fill in the details using your mouse.\n"
+        "2. Fill in the details using your mouse and calendar selectors.\n"
         "3. **Click the big green button** at the bottom to save and download the PDF instantly!"
     )
 
@@ -617,7 +607,7 @@ elif menu == "🧾 Create Invoice":
             invoice_no = st.text_input("Invoice Number (Auto-Generated)", value=get_next_invoice_no())
             client_name = st.text_input("Client Name (Attn)")
         with col2:
-            date = st.date_input("Invoice Date", value=datetime.today())
+            date = st.date_input("Invoice Date (Calendar)", value=datetime.today())
             terms = st.text_input("Payment Terms (e.g., Cash / 30 Days)", value="Cash")
 
         client_address = st.text_area("Client Address")
@@ -695,7 +685,7 @@ elif menu == "📑 Create Quotation":
             quote_no = st.text_input("Quotation Number (Auto-Generated)", value=get_next_quote_no())
             client_name = st.text_input("Client Name (Attn)")
         with col2:
-            date = st.date_input("Quotation Date", value=datetime.today())
+            date = st.date_input("Quotation Date (Calendar)", value=datetime.today())
             terms = st.text_input("Terms")
 
         client_address = st.text_area("Client Address")
@@ -829,8 +819,16 @@ elif menu == "💵 Payroll & Payslips":
                 ic_no = st.text_input("I.C. No", value="")
                 bank_info = st.text_input("Bank Account Details", value="")
             with col2:
-                month_year = st.text_input("Payslip Month & Year (e.g. October 2026)", value="")
-                date = st.text_input("Date", value="")
+                # Calendar/Dropdown Selectors for Payslip Month & Year (No manual typing)
+                st.write("📅 **Select Payslip Month & Year**")
+                col_m1, col_m2 = st.columns(2)
+                with col_m1:
+                    sel_month = st.selectbox("Month", ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], index=datetime.today().month-1)
+                with col_m2:
+                    sel_year = st.selectbox("Year", [2024, 2025, 2026, 2027], index=2)
+                month_year = f"{sel_month} {sel_year}"
+
+                date = st.date_input("Pay Date (Calendar)", value=datetime.today())
                 payment_method = st.text_input("Payment Method / Cheque No", value="Autocredit")
 
             st.divider()
@@ -841,7 +839,7 @@ elif menu == "💵 Payroll & Payslips":
                 basic_salary = st.number_input("Basic Salary (RM)", value=0.00, format="%.2f")
                 perfect_attendance = st.number_input("Perfect Attendance (RM)", value=0.00, format="%.2f")
                 performance_allowance = st.number_input("Performance Allowance (RM)", value=0.00, format="%.2f")
-                transport_allowance = st.number_input("Transport Allowance (RM)", value=0.00, format="%.2f")
+                transport_allowance = st.number_input("Transport Allowance (RM)", value=100.00, format="%.2f")
             with col_a2:
                 overtime_amount = st.number_input("Overtime Amount (RM)", value=0.00, format="%.2f")
                 outstation_allowance = st.number_input("Outstation Allowance (RM)", value=0.00, format="%.2f")
@@ -887,10 +885,10 @@ elif menu == "💵 Payroll & Payslips":
             try:
                 run_query(
                     "INSERT INTO payroll (payslip_no, employee_name, ic_no, bank_info, month_year, date, basic_salary, additions_json, deductions_json, gross_total, total_deduction, net_pay, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    ("-", employee_name, ic_no, bank_info, month_year, date, basic_salary, json.dumps(additions_dict), json.dumps(deductions_dict), gross_total, total_deduction, net_pay, payment_method),
+                    ("-", employee_name, ic_no, bank_info, month_year, str(date), basic_salary, json.dumps(additions_dict), json.dumps(deductions_dict), gross_total, total_deduction, net_pay, payment_method),
                     fetch=False,
                 )
-                html_content, pdf_path = save_payslip_pdf(employee_name, ic_no, bank_info, month_year, date, basic_salary, additions_dict, deductions_dict, gross_total, total_deduction, net_pay, payment_method)
+                html_content, pdf_path = save_payslip_pdf(employee_name, ic_no, bank_info, month_year, str(date), basic_salary, additions_dict, deductions_dict, gross_total, total_deduction, net_pay, payment_method)
                 st.success(f"✅ Payslip for {employee_name} ({month_year}) successfully created and saved!")
 
                 st.subheader("📄 Payslip Preview")
@@ -1056,7 +1054,7 @@ elif menu == "👥 Worker Attendance":
 
     with tab3:
         st.subheader("Quick Daily Entry / Update")
-        entry_date = st.date_input("Attendance Date", value=datetime.strptime(f"{month_prefix}-01", "%Y-%m-%d"))
+        entry_date = st.date_input("Attendance Date (Calendar)", value=datetime.strptime(f"{month_prefix}-01", "%Y-%m-%d"))
         worker_input = st.text_area(
             "Worker Names (comma separated)",
             value=", ".join([r[0] for r in run_query("SELECT DISTINCT worker_name FROM attendance", fetch=True)] or ["Syed Aidil", "Ahmad", "Ali", "Chow", "Muthu"])
@@ -1092,7 +1090,7 @@ elif menu == "💸 Expense Tracker":
     with st.form("expense_form"):
         col1, col2 = st.columns(2)
         with col1:
-            exp_date = st.date_input("Date", value=datetime.today())
+            exp_date = st.date_input("Expense Date (Calendar)", value=datetime.today())
             category = st.selectbox("Category", ["Materials / Supplies", "Worker Wages", "Transport & Fuel", "Utilities", "Others"])
         with col2:
             amount = st.number_input("Amount (RM)", min_value=0.0, format="%.2f")
