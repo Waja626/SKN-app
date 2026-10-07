@@ -618,9 +618,7 @@ elif menu == "🧾 Create Invoice":
         selected_items = []
         total_calc = 0.0
 
-        # FIXED INDENTATION ERROR HERE:
         for i in range(int(st.session_state.inv_count)):
-            # Add search filter box
             search_filter = st.text_input(f"🔍 Search Item {i+1}", placeholder="Type to filter product...", key=f"inv_search_{i}", help="Type 2-3 letters to instantly filter your product list.")
             
             if search_filter:
@@ -706,7 +704,6 @@ elif menu == "📑 Create Quotation":
         total_calc = 0.0
 
         for i in range(int(st.session_state.qt_count)):
-            # Add search filter box
             search_filter_q = st.text_input(f"🔍 Search Item {i+1}", placeholder="Type to filter product...", key=f"q_search_{i}", help="Type keywords to filter the item list.")
             
             if search_filter_q:
@@ -828,7 +825,7 @@ elif menu == "📂 View Invoices & Quotes":
 # ==========================================
 elif menu == "💵 Payroll & Payslips":
     st.title("💵 Staff Payroll & Payslips")
-    st.info("💡 **Tip:** Generate accurate monthly payslips effortlessly by selecting the month and year from dropdowns without needing manual typing.")
+    st.info("💡 **Tip:** EPF, SOCSO, and SIP are pre-filled with standard fixed rates but can be edited if needed.")
     tab_create, tab_view = st.tabs(["➕ Create Payslip", "📂 View / Print Payslips"])
 
     with tab_create:
@@ -860,17 +857,43 @@ elif menu == "💵 Payroll & Payslips":
                 performance_allowance = st.number_input("Performance Allowance (RM)", value=0.00, format="%.2f")
                 transport_allowance = st.number_input("Transport Allowance (RM)", value=100.00, format="%.2f")
             with col_a2:
-                overtime_amount = st.number_input("Overtime Amount (RM)", value=0.00, format="%.2f")
                 outstation_allowance = st.number_input("Outstation Allowance (RM)", value=0.00, format="%.2f")
                 last_month_addition = st.number_input("Last Month Addition (RM)", value=0.00, format="%.2f")
+
+            # --- OVERTIME CALCULATION SECTION ---
+            st.divider()
+            st.subheader("⏱️ Overtime Calculation")
+            st.caption("Formula: Basic Salary ÷ 26 Days ÷ 8 Hours × Multiplier × Hours Worked")
+            
+            hourly_rate = (basic_salary / 26.0 / 8.0) if basic_salary > 0 else 0.0
+            st.write(f"Calculated Hourly Rate: **RM {hourly_rate:,.2f} / hour**")
+
+            ot_col1, ot_col2, ot_col3 = st.columns(3)
+            with ot_col1:
+                ot_15_hours = st.number_input("1.5x OT Hours", min_value=0.0, value=0.0, format="%.2f", key="ot_15_h")
+                ot_15_rate = hourly_rate * 1.5
+                ot_15_amt = ot_15_rate * ot_15_hours
+                st.text(f"Rate: RM {ot_15_rate:.2f}/h\nAmt: RM {ot_15_amt:.2f}")
+            with ot_col2:
+                ot_20_hours = st.number_input("2.0x OT Hours", min_value=0.0, value=0.0, format="%.2f", key="ot_20_h")
+                ot_20_rate = hourly_rate * 2.0
+                ot_20_amt = ot_20_rate * ot_20_hours
+                st.text(f"Rate: RM {ot_20_rate:.2f}/h\nAmt: RM {ot_20_amt:.2f}")
+            with ot_col3:
+                ot_30_hours = st.number_input("3.0x OT Hours", min_value=0.0, value=0.0, format="%.2f", key="ot_30_h")
+                ot_30_rate = hourly_rate * 3.0
+                ot_30_amt = ot_30_rate * ot_30_hours
+                st.text(f"Rate: RM {ot_30_rate:.2f}/h\nAmt: RM {ot_30_amt:.2f}")
+
+            total_overtime_amount = ot_15_amt + ot_20_amt + ot_30_amt
 
             st.divider()
             st.subheader("📉 Deductions")
             col_d1, col_d2 = st.columns(2)
             with col_d1:
-                epf = st.number_input("EPF (RM)", value=0.00, format="%.2f")
-                socso = st.number_input("SOCSO (RM)", value=0.00, format="%.2f")
-                sip = st.number_input("SIP (Employment Ins. Sch) (RM)", value=0.00, format="%.2f")
+                epf = st.number_input("EPF (RM)", value=187.00, format="%.2f", help="Fixed standard employee EPF deduction.")
+                socso = st.number_input("SOCSO (RM)", value=49.45, format="%.2f", help="Fixed standard employee SOCSO deduction.")
+                sip = st.number_input("SIP (Employment Ins. Sch) (RM)", value=6.60, format="%.2f", help="Fixed standard employee SIP deduction.")
             with col_d2:
                 loan = st.number_input("Loan Deduction (RM)", value=0.00, format="%.2f")
                 unpaid_leave = st.number_input("Unpaid Leave (RM)", value=0.00, format="%.2f")
@@ -880,7 +903,7 @@ elif menu == "💵 Payroll & Payslips":
                 "Perfect Attendance": perfect_attendance,
                 "Performance Allowance": performance_allowance,
                 "Transport Allowance": transport_allowance,
-                "Overtime": overtime_amount,
+                "Overtime": total_overtime_amount,
                 "Outstation Allowance": outstation_allowance,
                 "Last Month Addition": last_month_addition,
             }
