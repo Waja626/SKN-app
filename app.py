@@ -113,8 +113,8 @@ if not st.session_state.logged_in:
             st.error("🚨 Too many failed login attempts. Account access temporarily throttled for security.")
         else:
             with st.form("login_form"):
-                username_input = st.text_input("Username")
-                password_input = st.text_input("Password", type="password")
+                username_input = st.text_input("Username", help="Enter your assigned staff/admin username.")
+                password_input = st.text_input("Password", type="password", help="Enter your secret account password.")
                 submit_login = st.form_submit_button("🔑 Login Securely")
 
                 if submit_login:
@@ -552,7 +552,7 @@ menu = st.sidebar.radio(
 # ==========================================
 if menu == "📊 Dashboard & Earnings":
     st.title("📊 SKN Permata Resources - Dashboard")
-    st.write("Welcome back! Here is your quick business summary.")
+    st.info("💡 **Welcome!** This system helps you easily create invoices, quotations, payroll slips, and track expenses without needing technical IT knowledge. Use the left menu to navigate between pages.")
 
     invoices = run_query("SELECT total_amount, status FROM invoices", fetch=True)
     expenses = run_query("SELECT amount FROM expenses", fetch=True)
@@ -571,11 +571,11 @@ if menu == "📊 Dashboard & Earnings":
     col4.metric("Net Profit", f"RM {net_profit:,.2f}")
 
     st.divider()
-    st.subheader("📌 Quick Guide:")
-    st.info(
-        "1. Go to **Payroll & Payslips** to generate staff payslips.\n"
-        "2. Fill in the details using your mouse and calendar selectors.\n"
-        "3. **Click the big green button** at the bottom to save and download the PDF instantly!"
+    st.subheader("📌 Quick Guide for Beginners:")
+    st.success(
+        "1. **Create Invoice/Quotation:** Choose how many items you want, type a few letters in the **🔍 Search Item** box to quickly find products, fill in quantities, and click the big green button at the bottom.\n"
+        "2. **Payroll & Payslips:** Pick the employee month and year from dropdown calendars, enter salary details, and download the PDF instantly.\n"
+        "3. **Products & Price List:** Add your inventory items once here so they automatically appear in your invoices and quotations."
     )
 
 # ==========================================
@@ -583,7 +583,7 @@ if menu == "📊 Dashboard & Earnings":
 # ==========================================
 elif menu == "🧾 Create Invoice":
     st.title("🧾 Create New Invoice")
-    st.write("Fill in client details below and **click the big green button** at the bottom.")
+    st.info("💡 **Tip for Users:** First, select how many different items are in this invoice and click **'🔄 Apply Count'**. Then fill in the client info and search for your items easily below.")
 
     products = run_query("SELECT item_name, price FROM products")
     product_dict = {p[0]: p[1] for p in products}
@@ -594,32 +594,34 @@ elif menu == "🧾 Create Invoice":
     col_ic1, col_ic2 = st.columns([3, 1])
     with col_ic1:
         st.session_state.inv_count = st.number_input(
-            "How many items in this invoice?", min_value=1, max_value=20, value=st.session_state.inv_count, key="inv_count_widget"
+            "How many items in this invoice?", min_value=1, max_value=20, value=st.session_state.inv_count, key="inv_count_widget",
+            help="Select the total number of product rows you want to add."
         )
     with col_ic2:
         st.write("")
-        if st.button("🔄 Apply Count", key="apply_inv_count"):
+        if st.button("🔄 Apply Count", key="apply_inv_count", help="Click this after changing the number of items above."):
             st.rerun()
 
     with st.form("create_invoice_form"):
         col1, col2 = st.columns(2)
         with col1:
-            invoice_no = st.text_input("Invoice Number (Auto-Generated)", value=get_next_invoice_no())
-            client_name = st.text_input("Client Name (Attn)")
+            invoice_no = st.text_input("Invoice Number (Auto-Generated)", value=get_next_invoice_no(), help="Generated automatically for you.")
+            client_name = st.text_input("Client Name (Attn)", help="Type the customer or company name here.")
         with col2:
-            date = st.date_input("Invoice Date (Calendar)", value=datetime.today())
-            terms = st.text_input("Payment Terms (e.g., Cash / 30 Days)", value="Cash")
+            date = st.date_input("Invoice Date (Calendar)", value=datetime.today(), help="Click to select transaction date.")
+            terms = st.text_input("Payment Terms (e.g., Cash / 30 Days)", value="Cash", help="Specify payment method or credit terms.")
 
-        client_address = st.text_area("Client Address")
+        client_address = st.text_area("Client Address", help="Enter full billing address.")
         st.divider()
         st.subheader("Select Items")
 
         selected_items = []
         total_calc = 0.0
 
-for i in range(int(st.session_state.inv_count)):
+        # FIXED INDENTATION ERROR HERE:
+        for i in range(int(st.session_state.inv_count)):
             # Add search filter box
-            search_filter = st.text_input(f"🔍 Search Item {i+1}", placeholder="Type to filter product...", key=f"inv_search_{i}")
+            search_filter = st.text_input(f"🔍 Search Item {i+1}", placeholder="Type to filter product...", key=f"inv_search_{i}", help="Type 2-3 letters to instantly filter your product list.")
             
             if search_filter:
                 filtered_options = [p for p in product_dict.keys() if search_filter.lower() in p.lower()]
@@ -631,16 +633,16 @@ for i in range(int(st.session_state.inv_count)):
                 item_name = st.selectbox(f"Select Product {i+1}", options=filtered_options if filtered_options else ["No matching product"], key=f"inv_item_{i}")
             with cols[1]:
                 default_price = product_dict.get(item_name, 0.0) if product_dict and item_name in product_dict else 0.0
-                price = st.number_input(f"Rate (RM) {i+1}", value=float(default_price), key=f"inv_price_{i}")
+                price = st.number_input(f"Rate (RM) {i+1}", value=float(default_price), key=f"inv_price_{i}", help="Unit price in RM.")
             with cols[2]:
-                qty = st.number_input(f"Qty {i+1}", min_value=1, value=1, key=f"inv_qty_{i}")
+                qty = st.number_input(f"Qty {i+1}", min_value=1, value=1, key=f"inv_qty_{i}", help="Quantity ordered.")
             with cols[3]:
                 subtotal = price * qty
                 st.write(f"**Amt:** RM {subtotal:,.2f}")
                 selected_items.append({"item": item_name, "price": price, "qty": qty, "subtotal": subtotal})
                 total_calc += subtotal
 
-        status = st.selectbox("Invoice Status", ["Unpaid", "Paid"])
+        status = st.selectbox("Invoice Status", ["Unpaid", "Paid"], help="Choose whether customer has paid.")
         submit_invoice = st.form_submit_button("💾 CLICK HERE TO GENERATE & SAVE INVOICE")
 
     if submit_invoice:
@@ -671,7 +673,7 @@ for i in range(int(st.session_state.inv_count)):
 # ==========================================
 elif menu == "📑 Create Quotation":
     st.title("📑 Create New Quotation")
-    st.write("Fill in client details below and **click the big green button** at the bottom.")
+    st.info("💡 **Tip:** Set the item count, click **'🔄 Apply Count'**, fill in the client details, and use the quick search box to pick your products.")
 
     products = run_query("SELECT item_name, price FROM products")
     product_dict = {p[0]: p[1] for p in products}
@@ -705,7 +707,7 @@ elif menu == "📑 Create Quotation":
 
         for i in range(int(st.session_state.qt_count)):
             # Add search filter box
-            search_filter_q = st.text_input(f"🔍 Search Item {i+1}", placeholder="Type to filter product...", key=f"q_search_{i}")
+            search_filter_q = st.text_input(f"🔍 Search Item {i+1}", placeholder="Type to filter product...", key=f"q_search_{i}", help="Type keywords to filter the item list.")
             
             if search_filter_q:
                 filtered_options_q = [p for p in product_dict.keys() if search_filter_q.lower() in p.lower()]
@@ -756,6 +758,7 @@ elif menu == "📑 Create Quotation":
 # ==========================================
 elif menu == "📂 View Invoices & Quotes":
     st.title("📂 Invoices & Quotations List")
+    st.info("💡 **Tip:** Type part of a client name or invoice number in the search box below to quickly find past documents.")
     tab_inv, tab_qt = st.tabs(["🧾 Invoices List", "📑 Quotations List"])
 
     with tab_inv:
@@ -825,17 +828,17 @@ elif menu == "📂 View Invoices & Quotes":
 # ==========================================
 elif menu == "💵 Payroll & Payslips":
     st.title("💵 Staff Payroll & Payslips")
+    st.info("💡 **Tip:** Generate accurate monthly payslips effortlessly by selecting the month and year from dropdowns without needing manual typing.")
     tab_create, tab_view = st.tabs(["➕ Create Payslip", "📂 View / Print Payslips"])
 
     with tab_create:
         with st.form("create_payslip_form"):
             col1, col2 = st.columns(2)
             with col1:
-                employee_name = st.text_input("Employee Name", value="")
-                ic_no = st.text_input("I.C. No", value="")
-                bank_info = st.text_input("Bank Account Details", value="")
+                employee_name = st.text_input("Employee Name", value="", help="Full name of staff member.")
+                ic_no = st.text_input("I.C. No", value="", help="Staff IC or Passport number.")
+                bank_info = st.text_input("Bank Account Details", value="", help="Bank name and account number.")
             with col2:
-                # Calendar/Dropdown Selectors for Payslip Month & Year (No manual typing)
                 st.write("📅 **Select Payslip Month & Year**")
                 col_m1, col_m2 = st.columns(2)
                 with col_m1:
@@ -954,6 +957,7 @@ elif menu == "💵 Payroll & Payslips":
 # ==========================================
 elif menu == "📦 Products & Price List":
     st.title("📦 Products & Price List")
+    st.info("💡 **Tip:** Add your products and default prices here once. They will then automatically show up with quick-search when you write invoices and quotations!")
     tab1, tab2 = st.tabs(["➕ Add New Item", "📋 Price List & Search"])
 
     with tab1:
@@ -1006,6 +1010,7 @@ elif menu == "📦 Products & Price List":
 # ==========================================
 elif menu == "👥 Worker Attendance":
     st.title("👥 Worker Attendance - Monthly Summary")
+    st.info("💡 **Tip:** Track daily attendance easily and view monthly summary reports automatically.")
     col_y, col_m = st.columns(2)
     with col_y:
         selected_year = st.selectbox("Select Year", [2024, 2025, 2026, 2027], index=2)
@@ -1103,6 +1108,7 @@ elif menu == "👥 Worker Attendance":
 # ==========================================
 elif menu == "💸 Expense Tracker":
     st.title("💸 Expense Tracker")
+    st.info("💡 **Tip:** Log daily business expenses quickly to keep your net profit calculations accurate.")
     with st.form("expense_form"):
         col1, col2 = st.columns(2)
         with col1:
