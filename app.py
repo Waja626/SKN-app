@@ -617,12 +617,20 @@ elif menu == "🧾 Create Invoice":
         selected_items = []
         total_calc = 0.0
 
-        for i in range(int(st.session_state.inv_count)):
+for i in range(int(st.session_state.inv_count)):
+            # Add search filter box
+            search_filter = st.text_input(f"🔍 Search Item {i+1}", placeholder="Type to filter product...", key=f"inv_search_{i}")
+            
+            if search_filter:
+                filtered_options = [p for p in product_dict.keys() if search_filter.lower() in p.lower()]
+            else:
+                filtered_options = list(product_dict.keys())
+
             cols = st.columns([3, 1, 1, 1])
             with cols[0]:
-                item_name = st.selectbox(f"Item {i+1}", options=list(product_dict.keys()) if product_dict else ["No Products"], key=f"inv_item_{i}")
+                item_name = st.selectbox(f"Select Product {i+1}", options=filtered_options if filtered_options else ["No matching product"], key=f"inv_item_{i}")
             with cols[1]:
-                default_price = product_dict.get(item_name, 0.0) if product_dict else 0.0
+                default_price = product_dict.get(item_name, 0.0) if product_dict and item_name in product_dict else 0.0
                 price = st.number_input(f"Rate (RM) {i+1}", value=float(default_price), key=f"inv_price_{i}")
             with cols[2]:
                 qty = st.number_input(f"Qty {i+1}", min_value=1, value=1, key=f"inv_qty_{i}")
@@ -696,11 +704,19 @@ elif menu == "📑 Create Quotation":
         total_calc = 0.0
 
         for i in range(int(st.session_state.qt_count)):
+            # Add search filter box
+            search_filter_q = st.text_input(f"🔍 Search Item {i+1}", placeholder="Type to filter product...", key=f"q_search_{i}")
+            
+            if search_filter_q:
+                filtered_options_q = [p for p in product_dict.keys() if search_filter_q.lower() in p.lower()]
+            else:
+                filtered_options_q = list(product_dict.keys())
+
             cols = st.columns([3, 1, 1, 1])
             with cols[0]:
-                item_name = st.selectbox(f"Item {i+1}", options=list(product_dict.keys()) if product_dict else ["No Products"], key=f"q_item_{i}")
+                item_name = st.selectbox(f"Select Product {i+1}", options=filtered_options_q if filtered_options_q else ["No matching product"], key=f"q_item_{i}")
             with cols[1]:
-                default_price = product_dict.get(item_name, 0.0) if product_dict else 0.0
+                default_price = product_dict.get(item_name, 0.0) if product_dict and item_name in product_dict else 0.0
                 price = st.number_input(f"Rate (RM) {i+1}", value=float(default_price), key=f"q_price_{i}")
             with cols[2]:
                 qty = st.number_input(f"Qty {i+1}", min_value=1, value=1, key=f"q_qty_{i}")
