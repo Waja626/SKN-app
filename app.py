@@ -48,18 +48,20 @@ def verify_password(stored_salt, stored_hash, provided_password):
     return pwdhash == stored_hash
 
 def init_default_admin():
-    """Automatically creates a default admin user if no users exist in the database."""
+    """Automatically creates a default admin user using st.secrets if no users exist."""
     try:
         users = run_query("SELECT COUNT(*) FROM users", fetch=True)
         if users and users[0][0] == 0:
-            salt, pwd_hash = hash_password("admin123") # Default password, change immediately!
+            admin_user = st.secrets["admin"]["username"]
+            admin_pass = st.secrets["admin"]["password"]
+            salt, pwd_hash = hash_password(admin_pass)
             run_query(
                 "INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)",
-                ("admin", pwd_hash, salt, "admin"),
+                (admin_user, pwd_hash, salt, "admin"),
                 fetch=False
             )
     except Exception:
-        pass # Table might not be created yet
+        pass
 
 init_default_admin()
 
